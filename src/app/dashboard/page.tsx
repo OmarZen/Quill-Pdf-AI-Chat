@@ -4,15 +4,12 @@ import { db } from '@/db'
 import { getKindeServerSession } from '@kinde-oss/kinde-auth-nextjs/server'
 import { redirect } from 'next/navigation'
 
-export const dynamic = "force-dynamic"; // Ensure the page is rendered dynamically
-
 const Page = async () => {
   const { getUser } = getKindeServerSession()
-  const user = getUser()
+  const user = await getUser()
 
-  if (!user || !(await user)?.id) {
-    redirect("/auth-callback?origin=dashboard");
-    return null; // Ensure no further rendering occurs
+  if ( await !user || !(await user).id) {
+    redirect('/auth-callback?origin=dashboard')
   }
 
   const dbUser = await db.user.findFirst({
@@ -21,10 +18,7 @@ const Page = async () => {
     }
   })
 
-  if (!dbUser) {
-    redirect("/auth-callback?origin=dashboard");
-    return null; // Ensure no further rendering occurs
-  }
+  if(await !dbUser) redirect('/auth-callback?origin=dashboard')
 
 //   const subscriptionPlan = await getUserSubscriptionPlan()
   return <Dashboard />
