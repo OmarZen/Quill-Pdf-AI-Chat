@@ -8,17 +8,20 @@ const Page = async () => {
   const { getUser } = getKindeServerSession()
   const user = await getUser()
 
-  if ( await !user || !(await user).id) {
+  console.log('user', user)
+  console.log('user.id', user?.id)
+
+  if ( !user || !user?.id) {
     redirect('/auth-callback?origin=dashboard')
   }
 
   const dbUser = await db.user.findFirst({
     where: {
-      id: (await user).id,
+      id: user.id,
     }
   })
 
-  if(await !dbUser) redirect('/auth-callback?origin=dashboard')
+  if(!dbUser) redirect('/auth-callback?origin=dashboard')
 
 //   const subscriptionPlan = await getUserSubscriptionPlan()
   return <Dashboard />
