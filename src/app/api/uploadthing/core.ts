@@ -5,16 +5,16 @@ import {
   type FileRouter,
 } from 'uploadthing/next'
 
-import { PDFLoader } from "@langchain/community/document_loaders/fs/pdf";
+import { PDFLoader } from '@langchain/community/document_loaders/fs/pdf'
 import { OpenAIEmbeddings } from '@langchain/openai'
 import { PineconeStore } from '@langchain/pinecone'
 import { getPineconeClient } from '@/lib/pinecone'
-// import { getUserSubscriptionPlan } from '@/lib/stripe'
-// import { PLANS } from '@/config/stripe'
+import { getUserSubscriptionPlan } from '@/lib/stripe'
+import { PLANS } from '@/config/stripe'
 
 const f = createUploadthing()
 
-const uploadThingAppId = process.env.UPLOADTHING_APP_ID;
+const uploadthingappid = process.env.UPLOADTHING_APP_ID
 
 const middleware = async () => {
   const { getUser } = getKindeServerSession()
@@ -22,10 +22,9 @@ const middleware = async () => {
 
   if (!user || !user.id) throw new Error('Unauthorized')
 
-//   const subscriptionPlan = await getUserSubscriptionPlan()
+  const subscriptionPlan = await getUserSubscriptionPlan()
 
-//   return { subscriptionPlan, userId: (await user).id }
-return { userId: user.id }
+  return { subscriptionPlan, userId: user.id }
 }
 
 const onUploadComplete = async ({
@@ -52,21 +51,16 @@ const onUploadComplete = async ({
       key: file.key,
       name: file.name,
       userId: metadata.userId,
-      url: `https://${uploadThingAppId}.ufs.sh/f/${file.key}`,
-    //   url: file.url,
-    //   url: `https://uploadthing-prod.s3.us-west-2.amazonaws.com/${file.key}`,
+      // url: `https://uploadthing-prod.s3.us-west-2.amazonaws.com/${file.key}`,
+      url: `https://${uploadthingappid}.ufs.sh/f/${file.key}`,
       uploadStatus: 'PROCESSING',
     },
   })
 
   try {
-    // const response = await fetch(
-    //   `https://uploadthing-prod.s3.us-west-2.amazonaws.com/${file.key}`
-    // )
-
-    // const response = await fetch(file.url)
     const response = await fetch(
-      `https://${uploadThingAppId}.ufs.sh/f/${file.key}`
+      // `https://uploadthing-prod.s3.us-west-2.amazonaws.com/${file.key}`
+      `https://${uploadthingappid}.ufs.sh/f/${file.key}`,
     )
 
     const blob = await response.blob()
@@ -75,32 +69,32 @@ const onUploadComplete = async ({
 
     const pageLevelDocs = await loader.load()
 
-    // const pagesAmt = pageLevelDocs.length
+    const pagesAmt = pageLevelDocs.length
 
-    // const { subscriptionPlan } = metadata
-    // const { isSubscribed } = subscriptionPlan
+    const { subscriptionPlan } = metadata
+    const { isSubscribed } = subscriptionPlan
 
-    // const isProExceeded =
-    //   pagesAmt >
-    //   PLANS.find((plan) => plan.name === 'Pro')!.pagesPerPdf
-    // const isFreeExceeded =
-    //   pagesAmt >
-    //   PLANS.find((plan) => plan.name === 'Free')!
-    //     .pagesPerPdf
+    const isProExceeded =
+      pagesAmt >
+      PLANS.find((plan) => plan.name === 'Pro')!.pagesPerPdf
+    const isFreeExceeded =
+      pagesAmt >
+      PLANS.find((plan) => plan.name === 'Free')!
+        .pagesPerPdf
 
-    // if (
-    //   (isSubscribed && isProExceeded) ||
-    //   (!isSubscribed && isFreeExceeded)
-    // ) {
-    //   await db.file.update({
-    //     data: {
-    //       uploadStatus: 'FAILED',
-    //     },
-    //     where: {
-    //       id: createdFile.id,
-    //     },
-    //   })
-    // }
+    if (
+      (isSubscribed && isProExceeded) ||
+      (!isSubscribed && isFreeExceeded)
+    ) {
+      await db.file.update({
+        data: {
+          uploadStatus: 'FAILED',
+        },
+        where: {
+          id: createdFile.id,
+        },
+      })
+    }
 
     // vectorize and index entire document
     const pinecone = await getPineconeClient()
@@ -128,7 +122,7 @@ const onUploadComplete = async ({
       },
     })
   } catch (err) {
-    console.error('Error during file processing:', err)
+    console.error(err)
     await db.file.update({
       data: {
         uploadStatus: 'FAILED',
